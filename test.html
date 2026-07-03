@@ -12,6 +12,8 @@
     --cyan-dim: #1d8a76;
     --text: #d7e6ea;
     --muted: #6f8a94;
+    --gold: #f5c542;
+    --gold-dim: #b8922e;
   }
   * { box-sizing: border-box; }
   html,body{ height:100%; margin:0; }
@@ -185,8 +187,157 @@
   }
   footer .lock{ color: var(--cyan-dim); }
 
+  /* ===== CONFIRMATION OVERLAY ===== */
+  .confirmation-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(3, 7, 13, 0.92);
+    backdrop-filter: blur(20px);
+    z-index: 10000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: fadeIn 0.5s ease both;
+  }
+  .confirmation-overlay.active {
+    display: flex;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .confirmation-box {
+    max-width: 600px;
+    width: 100%;
+    background: linear-gradient(180deg, rgba(13,27,43,0.98), rgba(7,15,26,0.99));
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 40px 35px;
+    box-shadow: 0 0 0 1px rgba(53,230,196,0.05), 0 30px 60px rgba(0,0,0,0.6), 0 0 80px rgba(53,230,196,0.03);
+    position: relative;
+    overflow: hidden;
+    animation: slideUp 0.5s cubic-bezier(0.16,1,0.3,1) both;
+  }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .confirmation-box::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--cyan), var(--gold), var(--cyan), transparent);
+    background-size: 200% 100%;
+    animation: topBarFlow 3s linear infinite;
+  }
+  @keyframes topBarFlow {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  .confirmation-box .icon {
+    text-align: center;
+    font-size: 52px;
+    margin-bottom: 10px;
+    display: block;
+  }
+  .confirmation-box h2 {
+    color: var(--cyan);
+    font-size: 22px;
+    margin: 0 0 12px;
+    text-align: center;
+    letter-spacing: 0.02em;
+  }
+  .confirmation-box .message {
+    color: var(--text-dim);
+    font-size: 14px;
+    line-height: 1.8;
+    margin: 0 0 20px;
+    text-align: center;
+  }
+  .confirmation-box .message strong {
+    color: var(--text);
+  }
+  .confirmation-box .fee-details {
+    background: rgba(53,230,196,0.04);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin: 0 0 22px;
+  }
+  .confirmation-box .fee-details p {
+    margin: 4px 0;
+    font-size: 13px;
+    color: var(--text-dim);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .confirmation-box .fee-details .amount {
+    color: var(--gold);
+    font-weight: 700;
+    font-size: 15px;
+  }
+  .confirmation-box .fee-details .note {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--line);
+    text-align: center;
+  }
+  .confirmation-box .fee-details .note .highlight {
+    color: var(--cyan);
+    font-weight: 600;
+  }
+
+  .btn-logout {
+    width: 100%;
+    padding: 14px 24px;
+    background: linear-gradient(135deg, var(--cyan-dim), var(--cyan-glow));
+    color: #0a1420;
+    border: none;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-shadow: 0 1px 2px rgba(255,255,255,0.2);
+  }
+  .btn-logout:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(53,230,196,0.3);
+  }
+  .btn-logout:active {
+    transform: translateY(0);
+  }
+
+  .confirmation-box .timer-text {
+    text-align: center;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 12px;
+    letter-spacing: 0.05em;
+  }
+  .confirmation-box .timer-text span {
+    color: var(--cyan);
+    font-weight: 600;
+  }
+
   @media (max-width: 600px){
     iframe{ min-height: 82vh; }
+    .confirmation-box { padding: 30px 20px; }
+    .confirmation-box h2 { font-size: 19px; }
+    .confirmation-box .message { font-size: 13px; }
+    .confirmation-box .fee-details p { font-size: 12px; flex-direction: column; align-items: flex-start; gap: 2px; }
   }
 </style>
 </head>
@@ -200,6 +351,7 @@
 <div class="cursor-core" id="cursorCore"></div>
 
 <header>
+  <div class="uni-badge">📝 Admission Test in Progress</div>
   <h1><a href="https://stmu.edu.pk/" target="_blank" rel="noopener">Shifa Tameer-e-Millat University (STMU)</a></h1>
   <p class="loc">ISLAMABAD · OFFICE OF ADMISSIONS</p>
 </header>
@@ -211,7 +363,7 @@
     <span class="dot g"></span>
     <span class="frame-title">admission-test.form ~ active</span>
   </div>
-  <iframe src="https://docs.google.com/forms/d/e/1FAIpQLSdfXMofzSlPS_0tYjx0KeeAtwprrEDjwopsDPXJC9LwD4tc2w/viewform?embedded=true" loading="lazy">Loading…</iframe>
+  <iframe src="https://docs.google.com/forms/d/e/1FAIpQLSdfXMofzSlPS_0tYjx0KeeAtwprrEDjwopsDPXJC9LwD4tc2w/viewform?embedded=true" id="testFrame" loading="lazy">Loading…</iframe>
 </div>
 
 <footer>
@@ -219,8 +371,31 @@
   © <span id="year"></span> Shifa Tameer-e-Millat University
 </footer>
 
+<!-- ===== CONFIRMATION OVERLAY ===== -->
+<div class="confirmation-overlay" id="confirmationOverlay">
+  <div class="confirmation-box">
+    <span class="icon">✅</span>
+    <h2>Thank You for Attempting the Test!</h2>
+    <div class="message">
+      <p>We will review your <strong>test marks</strong> along with your <strong>FSc marks</strong>. If you clear the test, an <strong>offer letter</strong> will be sent to your registered email within <strong>48 hours</strong>.</p>
+    </div>
+    <div class="fee-details">
+      <p><span>📚 Total Fee</span> <span class="amount">PKR 164,000</span></p>
+      <p><span>💳 First Installment</span> <span class="amount">PKR 82,000</span></p>
+      <p><span>📅 Second Installment</span> <span class="amount">PKR 82,000</span></p>
+      <div class="note">
+        ⚠️ <span class="highlight">Limited seats available!</span> Your seat will be confirmed only after you submit a <strong>paid screenshot</strong> of the first installment.
+      </div>
+    </div>
+    <button class="btn-logout" id="logoutBtn">Return to Portal →</button>
+    <div class="timer-text">You will be redirected in <span id="countdown">10</span> seconds</div>
+  </div>
+</div>
+
 <script>
   document.getElementById('year').textContent = new Date().getFullYear();
+
+  // ===== CURSOR EFFECTS =====
   const glow = document.getElementById('cursorGlow');
   const core = document.getElementById('cursorCore');
   window.addEventListener('mousemove', (e) => {
@@ -229,6 +404,98 @@
     core.style.left = e.clientX + 'px';
     core.style.top = e.clientY + 'px';
   });
+
+  // ===== CONFIRMATION OVERLAY LOGIC =====
+  const overlay = document.getElementById('confirmationOverlay');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const countdownEl = document.getElementById('countdown');
+  let countdown = 10;
+  let timerInterval = null;
+
+  // Function to show confirmation
+  function showConfirmation() {
+    overlay.classList.add('active');
+    countdown = 10;
+    countdownEl.textContent = countdown;
+    
+    // Start countdown timer
+    if (timerInterval) clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+      countdown--;
+      countdownEl.textContent = countdown;
+      if (countdown <= 0) {
+        clearInterval(timerInterval);
+        redirectToMain();
+      }
+    }, 1000);
+  }
+
+  // Function to redirect to main page (logout)
+  function redirectToMain() {
+    // Clear any session data if needed
+    sessionStorage.clear();
+    localStorage.clear();
+    // Redirect to main page (index.html)
+    window.location.href = 'index.html';
+  }
+
+  // Logout button click handler
+  logoutBtn.addEventListener('click', redirectToMain);
+
+  // ===== DETECT FORM SUBMISSION =====
+  // Method 1: Detect iframe navigation to Google Form's thank you page
+  const iframe = document.getElementById('testFrame');
+  let formSubmitted = false;
+
+  // Listen for iframe load events
+  iframe.addEventListener('load', function() {
+    try {
+      // Check if the iframe URL contains the thank you page indicator
+      const iframeUrl = iframe.contentWindow.location.href;
+      if (iframeUrl.includes('formResponse') || iframeUrl.includes('thankyou')) {
+        if (!formSubmitted) {
+          formSubmitted = true;
+          showConfirmation();
+        }
+      }
+    } catch (e) {
+      // Cross-origin errors are expected - we'll use method 2 as fallback
+    }
+  });
+
+  // Method 2: Listen for postMessage from Google Form (if available)
+  window.addEventListener('message', function(e) {
+    // Check if message indicates form submission
+    if (e.data === 'form-submitted' || (e.data && e.data.type === 'form-submit')) {
+      if (!formSubmitted) {
+        formSubmitted = true;
+        showConfirmation();
+      }
+    }
+  });
+
+  // Method 3: Fallback - Monitor iframe URL changes (polling)
+  let lastUrl = '';
+  setInterval(() => {
+    try {
+      const currentUrl = iframe.contentWindow.location.href;
+      if (currentUrl !== lastUrl) {
+        lastUrl = currentUrl;
+        if (currentUrl.includes('formResponse') || currentUrl.includes('thankyou')) {
+          if (!formSubmitted) {
+            formSubmitted = true;
+            showConfirmation();
+          }
+        }
+      }
+    } catch (e) {
+      // Cross-origin - ignore
+    }
+  }, 2000);
+
+  // Method 4: Manual trigger for testing (remove in production)
+  // To test manually, uncomment the line below:
+  // setTimeout(showConfirmation, 5000);
 </script>
 </body>
 </html>
