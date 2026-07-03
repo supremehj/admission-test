@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STMU Admission Test — Secure Access Portal</title>
+<style>
+  :root{
+    --bg: #03070d;
+    --bg-elevated: #070f1a;
+    --panel: #0a1420;
+    --panel-hover: #0d1b2b;
+    --line: #142536;
+    --line-bright: #1e3a4f;
+    --cyan: #22f0bf;
+    --cyan-glow: #14d8a8;
+    --cyan-dim: #0e7a65;
+    --blue: #3d7eff;
+    --blue-glow: #5a92ff;
+    --text: #e8f4f6;
+    --text-dim: #9ab3ba;
+    --muted: #5a7a85;
+    --danger: #ff4d64;
+    --gold: #f5c542;
+    --gold-dim: #b8922e;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --transition: 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    --transition-fast: 0.15s ease-out;
+  }
+  *,*::before,*::after{ box-sizing: border-box; }
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{ animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+  html,body{ height:100%; }
+  body{
+    margin:0;
+    min-height:100vh;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'JetBrains Mono','SFMono-Regular','Consolas','Courier New',monospace;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    padding:clamp(16px,3vh,32px) clamp(20px,4vw,40px);
+    position:relative;
+    overflow:hidden;
+    line-height:1.6;
+  }
+
+  /* ===== DEPTH LAYERS ===== */
+  .layer{ position:fixed; inset:0; pointer-events:none; z-index:0; }
+  .layer-bg{
+    background:
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(34,240,191,0.08), transparent),
+      radial-gradient(ellipse 60% 40% at 100% 100%, rgba(61,126,255,0.06), transparent),
+      radial-gradient(ellipse 40% 30% at 0% 0%, rgba(245,197,66,0.04), transparent),
+      var(--bg);
+  }
+  .layer-grid{
+    background-image:
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size:60px 60px; opacity:0.15;
+    animation:gridDrift 25s linear infinite;
+  }
+  @keyframes gridDrift{ from{background-position:0 0} to{background-position:60px 60px} }
+  .layer-noise{
+    opacity:0.03;
+    background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    animation:noiseShift 0.3s steps(10) infinite;
+  }
+  @keyframes noiseShift{
+    0%{transform:translate(0,0)} 10%{transform:translate(-2%,1%)} 20%{transform:translate(2%,-1%)}
+    30%{transform:translate(-1%,2%)} 40%{transform:translate(1%,-2%)} 50%{transform:translate(2%,1%)}
+    60%{transform:translate(-2%,-1%)} 70%{transform:translate(1%,2%)} 80%{transform:translate(-1%,-2%)}
+    90%{transform:translate(2%,-1%)} 100%{transform:translate(0,0)}
+  }
+  .layer-scan{ height:2px; background:linear-gradient(90deg,transparent,var(--cyan),transparent); opacity:0; animation:scanSweep 6s ease-in-out infinite; }
+  @keyframes scanSweep{ 0%{top:0;opacity:0} 8%{opacity:0.4} 50%{top:100%;opacity:0.4} 58%{opacity:0} 100%{top:100%;opacity:0} }
+  .layer-aurora{
+    background: radial-gradient(ellipse at 20% 20%, rgba(34,240,191,0.12), transparent 50%), radial-gradient(ellipse at 80% 80%, rgba(61,126,255,0.10), transparent 50%), radial-gradient(ellipse at 50% 50%, rgba(245,197,66,0.05), transparent 60%);
+    animation:auroraFloat 20s ease-in-out infinite;
+  }
+  @keyframes auroraFloat{ 0%,100%{transform:translate(0,0) scale(1);opacity:0.6} 25%{transform:translate(-3%,2%) scale(1.02);opacity:0.8} 50%{transform:translate(2%,-3%) scale(0.98);opacity:0.7} 75%{transform:translate(-2%,-2%) scale(1.01);opacity:0.75} }
+
+  /* ===== CURSOR EFFECTS ===== */
+  .cursor-ring,.cursor-core,.particle{ pointer-events:none !important; z-index:9990 !important; }
+  .cursor-ring{ position:fixed; width:320px; height:320px; border-radius:50%; border:1px solid rgba(34,240,191,0.15); transform:translate(-50%,-50%); opacity:0; transition:opacity 0.3s,width 0.2s,height 0.2s; }
+  .cursor-ring::before{ content:''; position:absolute; inset:-2px; border-radius:50%; background:conic-gradient(from 0deg,transparent,rgba(34,240,191,0.4),transparent 50%,rgba(61,126,255,0.4),transparent); animation:ringSpin 8s linear infinite; opacity:0.6; }
+  @keyframes ringSpin{ to{transform:rotate(360deg)} }
+  .cursor-core{ position:fixed; width:60px; height:60px; border-radius:50%; background:radial-gradient(circle,rgba(34,240,191,0.4),rgba(34,240,191,0.1) 40%,transparent 70%); transform:translate(-50%,-50%); filter:blur(8px); transition:opacity 0.2s,width 0.1s,height 0.1s; opacity:0; }
+  .particle{ position:fixed; width:4px; height:4px; border-radius:50%; background:var(--cyan); box-shadow:0 0 8px 2px var(--cyan); animation:particleRise 1.2s ease-out forwards; }
+  @keyframes particleRise{ 0%{transform:translateY(0) scale(1);opacity:0.9} 100%{transform:translateY(-100px) scale(0);opacity:0} }
+
+  /* ===== HEADER / TITLE BLOCK ===== */
+  .title-block{ position:relative; z-index:10; text-align:center; margin-bottom:clamp(8px,1.5vh,16px); animation:fadeSlideUp 0.8s cubic-bezier(0.16,1,0.3,1) both; }
+  @keyframes fadeSlideUp{ from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+  
+  .uni-name-large{
+    font-size:clamp(28px,5.5vw,48px);
+    font-weight:800; letter-spacing:-0.02em; line-height:1.15;
+    color:#0b53c7;
+    margin:0;
+  }
+  .uni-name-large a{ color:inherit; text-decoration:none; position:relative; }
+  .uni-name-large a::after{
+    content:''; position:absolute; bottom:-6px; left:10%; right:10%; height:2px;
+    background:linear-gradient(90deg,transparent,var(--cyan-dim),var(--cyan),var(--cyan-dim),transparent);
+    transform:scaleX(0); transform-origin:right;
+    transition:transform 0.5s cubic-bezier(0.25,0.46,0.45,0.94);
+  }
+  .uni-name-large a:hover::after{ transform:scaleX(1); transform-origin:left; }
+
+  /* ===== CONSOLE / CARD ===== */
+  .console{ position:relative; z-index:10; width:100%; max-width:440px;
+    background: linear-gradient(180deg,rgba(13,27,43,0.95),rgba(7,15,26,0.98)), radial-gradient(ellipse at top left,rgba(34,240,191,0.04),transparent 50%);
+    border:1px solid var(--line); border-radius:var(--radius);
+    box-shadow: 0 0 0 1px rgba(34,240,191,0.03), 0 4px 24px rgba(0,0,0,0.4), 0 20px 60px rgba(0,0,0,0.5), 0 0 80px rgba(34,240,191,0.02), inset 0 1px 0 rgba(255,255,255,0.02);
+    overflow:hidden; animation:borderGlow 5s ease-in-out infinite, fadeSlideUp 0.8s cubic-bezier(0.16,1,0.3,1) 0.1s both;
+  }
+  @keyframes borderGlow{
+    0%,100%{box-shadow: 0 0 0 1px rgba(34,240,191,0.03), 0 4px 24px rgba(0,0,0,0.4), 0 20px 60px rgba(0,0,0,0.5), 0 0 80px rgba(34,240,191,0.02), inset 0 1px 0 rgba(255,255,255,0.02)}
+    50%{box-shadow: 0 0 0 1px rgba(34,240,191,0.12), 0 4px 24px rgba(0,0,0,0.4), 0 20px 60px rgba(0,0,0,0.5), 0 0 100px rgba(34,240,191,0.15), inset 0 1px 0 rgba(255,255,255,0.02)}
+  }
+  .console::before{ content:''; position:absolute; top:0;left:0;right:0; height:1px; background:linear-gradient(90deg,transparent,var(--cyan),var(--gold),var(--cyan),transparent); opacity:0.6; animation:topBarFlow 4s linear infinite; }
+  @keyframes topBarFlow{ 0%{background-position:-200% 0} 100%{background-position:200% 0} }
+  .console-body{ padding:clamp(24px,4vh,36px) clamp(20px,4vw,32px) clamp(28px,5vh,40px); }
+
+  .status-line{ font-size:12px; color:var(--cyan-dim); margin-bottom:6px; display:flex; align-items:center; gap:8px; animation:fadeIn 0.6s ease 0.2s both; }
+  .status-line span{ color:var(--cyan); font-weight:600 }
+  .status-line .blink{ animation:blink 1s step-end infinite }
+  @keyframes blink{ 50%{opacity:0} }
+  @keyframes fadeIn{ from{opacity:0} to{opacity:1} }
+
+  h2.title{ font-size:clamp(18px,3vw,22px); margin:4px 0 6px; color:var(--text); font-weight:700; letter-spacing:0.01em; animation:fadeSlideUp 0.6s cubic-bezier(0.16,1,0.3,1) 0.3s both; }
+  p.subtitle{ font-size:13px; color:var(--text-dim); margin:0 0 28px; line-height:1.7; animation:fadeSlideUp 0.6s cubic-bezier(0.16,1,0.3,1) 0.4s both; }
+
+  .field{ margin-bottom:22px; animation:fadeSlideUp 0.6s cubic-bezier(0.16,1,0.3,1) both }
+  .field:nth-child(1){ animation-delay:0.5s }
+  .field:nth-child(2){ animation-delay:0.6s }
+  label{ display:block; font-size:10px; color:var(--cyan-dim); text-transform:uppercase; letter-spacing:0.12em; margin-bottom:8px; font-weight:600; }
+  .input-wrap{ display:flex; align-items:center; border:1px solid var(--line); border-radius:var(--radius-sm); background:rgba(6,13,21,0.8); backdrop-filter:blur(10px); padding:0 16px; transition:all var(--transition-fast); position:relative; z-index:20; }
+  .input-wrap::before{ content:''; position:absolute; inset:0; border-radius:var(--radius-sm); padding:1px; background:linear-gradient(135deg,var(--cyan),var(--blue)); -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0); -webkit-mask-composite:xor; mask-composite:exclude; opacity:0; transition:opacity var(--transition); pointer-events:none; }
+  .input-wrap:focus-within{ border-color:transparent; box-shadow:0 0 0 1px var(--line),0 0 20px rgba(34,240,191,0.08); }
+  .input-wrap:focus-within::before{ opacity:1 }
+  .input-wrap .caret{ color:var(--cyan-dim); margin-right:10px; font-size:14px; font-weight:700; opacity:0.7; pointer-events:none; transition:opacity var(--transition-fast),color var(--transition-fast); }
+  .input-wrap:focus-within .caret{ opacity:1; color:var(--cyan) }
+  input{ flex:1; background:transparent; border:none; outline:none; color:var(--text); font-family:inherit; font-size:14px; padding:14px 0; width:100%; position:relative; z-index:10; }
+  input::placeholder{ color:var(--muted); opacity:0.6 }
+  input:invalid:not(:placeholder-shown){ color:var(--danger) }
+
+  .btn-primary{ 
+    width:100%; padding:16px 24px; margin-top:6px; 
+    background:linear-gradient(135deg,var(--cyan-dim),var(--cyan-glow)); 
+    color:#0a1420; 
+    border:none; border-radius:var(--radius-sm); 
+    font-family:inherit; font-size:12px; font-weight:700; 
+    letter-spacing:0.1em; text-transform:uppercase; 
+    cursor:pointer; position:relative; overflow:hidden; 
+    transition:all var(--transition); 
+    animation:fadeSlideUp 0.6s cubic-bezier(0.16,1,0.3,1) 0.7s both; 
+    z-index:20; 
+    text-shadow: 0 1px 2px rgba(255,255,255,0.3);
+  }
+  .btn-primary::before{ content:''; position:absolute; inset:0; background:linear-gradient(135deg,var(--cyan),var(--gold),var(--cyan)); background-size:200% 100%; opacity:0; transition:opacity var(--transition); pointer-events:none; }
+  .btn-primary::after{ content:''; position:absolute; top:0;left:-100%; width:100%;height:100%; background:linear-gradient(90deg,transparent,rgba(255,255,255,0.2),transparent); transform:skewX(-20deg); transition:left 0.6s ease; pointer-events:none; }
+  .btn-primary:hover{ transform:translateY(-2px); box-shadow:0 8px 30px rgba(34,240,191,0.3) }
+  .btn-primary:hover::after{ left:200% }
+  .btn-primary:active{ transform:translateY(0); box-shadow:0 4px 16px rgba(34,240,191,0.25) }
+  .btn-primary:disabled{ opacity:0.6; cursor:not-allowed; transform:none; box-shadow:none }
+  .btn-primary.loading{ color:transparent; text-shadow:none; }
+  .btn-primary.loading::before{ opacity:1; animation:btnShine 1.5s linear infinite }
+  @keyframes btnShine{ 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+  #error{ min-height:20px; font-size:12px; text-align:center; margin-top:18px; transition:all var(--transition); animation:fadeIn 0.3s ease both; }
+  #error.success{ color:var(--cyan) }
+  #error.error{ color:var(--danger) }
+
+  .progress-track{ width:100%; height:5px; background:var(--line); border-radius:100px; margin-top:18px; overflow:hidden; display:none; position:relative; }
+  .progress-track.active{ display:block; animation:fadeIn 0.3s ease both }
+  .progress-fill{ position:absolute; height:100%; width:35%; background:linear-gradient(90deg,transparent,var(--cyan),var(--gold),var(--cyan)); background-size:200% 100%; border-radius:100px; box-shadow:0 0 12px rgba(34,240,191,0.6); animation:progressSlide 1.2s ease-in-out infinite, progressShine 2s linear infinite; }
+  @keyframes progressSlide{ 0%{left:-35%} 100%{left:100%} }
+  @keyframes progressShine{ 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+  footer{ position:relative; z-index:10; margin-top:clamp(16px,2.5vh,24px); text-align:center; font-size:10.5px; color:var(--muted); letter-spacing:0.08em; line-height:1.8; animation:fadeIn 0.8s ease 0.9s both; }
+  footer .lock{ color:var(--cyan-dim); margin-right:6px }
+  footer .sep{ margin:0 8px; color:var(--line-bright) }
+
+  /* ===== ENTRANCE SEQUENCE ===== */
+  @keyframes dashIn{ to{stroke-dashoffset:0} }
+  
+  .entrance-overlay{ position:fixed; inset:0; background:var(--bg); z-index:10000; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:24px; pointer-events:none; }
+  .entrance-overlay.hidden{ opacity:0; pointer-events:none; transition:opacity 0.6s ease }
+  .entrance-logo{ width:80px; height:80px; border:2px solid var(--cyan); border-radius:50%; display:flex; align-items:center; justify-content:center; position:relative; animation:logoSpin 2s ease-out; }
+  @keyframes logoSpin{ from{transform:rotate(-180deg) scale(0.3);opacity:0} to{transform:rotate(0) scale(1);opacity:1} }
+  .entrance-logo svg{ width:40px; height:40px; stroke:var(--cyan); stroke-width:2; fill:none }
+  .entrance-text{ font-size:13px; letter-spacing:0.3em; text-transform:uppercase; color:var(--cyan); animation:fadeIn 1s ease 0.8s both }
+  .entrance-bar{ width:200px; height:2px; background:var(--line); border-radius:100px; overflow:hidden }
+  .entrance-bar-fill{ width:100%; height:100%; background:linear-gradient(90deg,var(--cyan),var(--gold)); transform:translateX(-100%); animation:entranceFill 2s ease-out 0.5s forwards }
+  @keyframes entranceFill{ to{transform:translateX(0)} }
+
+  @media (max-width:480px){
+    .console-body{ padding:24px 18px 30px }
+    .input-wrap{ padding:0 14px }
+    .cursor-ring{ width:240px; height:240px }
+    .cursor-core{ width:40px; height:40px }
+    .uni-name-large{ font-size:clamp(24px,7vw,36px) }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== DEPTH LAYERS ===== -->
+<div class="layer layer-bg"></div>
+<div class="layer layer-aurora"></div>
+<div class="layer layer-grid"></div>
+<div class="layer layer-noise"></div>
+<div class="layer layer-scan"></div>
+
+<!-- ===== CURSOR EFFECTS ===== -->
+<div class="cursor-ring" id="cursorRing" aria-hidden="true"></div>
+<div class="cursor-core" id="cursorCore" aria-hidden="true"></div>
+
+<!-- ===== ENTRANCE SEQUENCE ===== -->
+<div class="entrance-overlay" id="entranceOverlay" aria-hidden="true">
+  <div class="entrance-logo">
+    <svg viewBox="0 0 48 48" aria-hidden="true">
+      <circle cx="24" cy="24" r="18" stroke-dasharray="113" stroke-dashoffset="113" style="animation:dashIn 1.5s ease-out 0.3s forwards"/>
+      <path d="M24 14v12l7 7" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="25" stroke-dashoffset="25" style="animation:dashIn 1s ease-out 0.8s forwards"/>
+    </svg>
+  </div>
+  <div class="entrance-text">Initializing Secure Channel</div>
+  <div class="entrance-bar"><div class="entrance-bar-fill"></div></div>
+</div>
+
+<!-- ===== TITLE BLOCK (TOP) ===== -->
+<div class="title-block">
+  <h1 class="uni-name-large">
+    <a href="https://stmu.edu.pk/" target="_blank" rel="noopener">Shifa Tameer‑e‑Millat University</a>
+  </h1>
+</div>
+
+<!-- ===== CONSOLE / CARD ===== -->
+<div class="console" role="main">
+  <div class="console-body">
+    <div class="status-line"><span>&gt;</span> session <span class="blink">_</span></div>
+    <h2 class="title">Admission Test Access</h2>
+    <p class="subtitle">Enter your assigned credentials to initialize the examination session. All attempts are logged and encrypted.</p>
+
+    <form id="loginForm" novalidate>
+      <div class="field">
+        <label for="username">Username</label>
+        <div class="input-wrap">
+          <span class="caret" aria-hidden="true">$</span>
+          <input type="text" id="username" name="username" placeholder="student_id" autocomplete="username" required>
+        </div>
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <div class="input-wrap">
+          <span class="caret" aria-hidden="true">$</span>
+          <input type="password" id="password" name="password" placeholder="••••••••" autocomplete="current-password" required>
+        </div>
+      </div>
+      <button type="submit" class="btn-primary" id="submitBtn">Authenticate &amp; Launch Test →</button>
+    </form>
+    <div id="error" aria-live="polite"></div>
+    <div class="progress-track" id="progressTrack" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-label="Verification progress">
+      <div class="progress-fill"></div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <span class="lock" aria-hidden="true">&#128274;</span> Encrypted TLS 1.3 Session
+  <span class="sep" aria-hidden="true">|</span>
+  Authorized Candidates Only
+  <span class="sep" aria-hidden="true">|</span>
+  © <span id="year"></span> Shifa Tameer‑e‑Millat University
+</footer>
+
+<script>
+  document.getElementById('year').textContent = new Date().getFullYear();
+
+  // ===== ENTRANCE SEQUENCE =====
+  const entrance = document.getElementById('entranceOverlay');
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      entrance.classList.add('hidden');
+      setTimeout(() => entrance.remove(), 600);
+    }, 2500);
+  });
+
+  // ===== CURSOR RING + CORE + PARTICLES =====
+  const ring = document.getElementById('cursorRing');
+  const core = document.getElementById('cursorCore');
+  let lastParticle = 0, mouseX = 0, mouseY = 0, ringX = 0, ringY = 0, coreX = 0, coreY = 0;
+  const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function animateCursor() {
+    if (prefersReduced) return;
+    ringX += (mouseX - ringX) * 0.12;
+    ringY += (mouseY - ringY) * 0.12;
+    coreX += (mouseX - coreX) * 0.25;
+    coreY += (mouseY - coreY) * 0.25;
+    ring.style.left = ringX + 'px';
+    ring.style.top = ringY + 'px';
+    core.style.left = coreX + 'px';
+    core.style.top = coreY + 'px';
+    requestAnimationFrame(animateCursor);
+  }
+  animateCursor();
+
+  window.addEventListener('mousemove', (e) => {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+    ring.style.opacity = '1';
+    core.style.opacity = '1';
+
+    const now = Date.now();
+    if (now - lastParticle > 50) {
+      lastParticle = now;
+      const p = document.createElement('div');
+      p.className = 'particle';
+      p.style.left = (e.clientX + (Math.random() * 12 - 6)) + 'px';
+      p.style.top = (e.clientY + (Math.random() * 12 - 6)) + 'px';
+      p.style.animationDuration = (0.9 + Math.random() * 0.5) + 's';
+      p.style.pointerEvents = 'none';
+      document.body.appendChild(p);
+      setTimeout(() => p.remove(), 1300);
+    }
+  });
+  window.addEventListener('mouseleave', () => { ring.style.opacity = '0'; core.style.opacity = '0'; });
+  window.addEventListener('mouseenter', () => { ring.style.opacity = '1'; core.style.opacity = '1'; });
+
+  // ===== FORM HANDLING =====
+  const backendUrl = "https://script.google.com/macros/s/AKfycbygwupDuHiYIpSEyZN_ba8PaFfxrnskTz7T3gFtGjgMe3RhzyQvzADRVL2_XPPBUNuI/exec";
+  const formLink = "test.html";
+
+  const form = document.getElementById('loginForm');
+  const btn = document.getElementById('submitBtn');
+  const errorBox = document.getElementById('error');
+  const track = document.getElementById('progressTrack');
+  const inputs = form.querySelectorAll('input');
+
+  form.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const u = document.getElementById('username').value.trim();
+    const p = document.getElementById('password').value.trim();
+
+    if (!u || !p) { shakeForm(); return; }
+
+    setLoading(true);
+    errorBox.className = '';
+    errorBox.textContent = 'Verifying credentials against registry...';
+    track.classList.add('active');
+
+    try {
+      const response = await fetch(backendUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ username: u, password: p })
+      });
+      const result = await response.json();
+      track.classList.remove('active');
+
+      if (result.success) { successSequence(); }
+      else { errorSequence('Access denied: invalid username or password.'); }
+    } catch (err) {
+      track.classList.remove('active');
+      errorSequence('Connection error. Please verify network and retry.');
+    }
+  });
+
+  function setLoading(isLoading) {
+    btn.disabled = isLoading;
+    btn.classList.toggle('loading', isLoading);
+    btn.textContent = isLoading ? '' : 'Authenticate & Launch Test →';
+    inputs.forEach(i => i.disabled = isLoading);
+  }
+
+  function successSequence() {
+    errorBox.className = 'success';
+    errorBox.textContent = 'Access granted. Redirecting to examination...';
+    btn.classList.remove('loading');
+    btn.style.background = 'linear-gradient(135deg, var(--gold-dim), var(--gold))';
+    btn.textContent = 'Launching...';
+    btn.style.color = '#0a1420';
+    setTimeout(() => { window.location.href = formLink; }, 800);
+  }
+
+  function errorSequence(msg) {
+    errorBox.className = 'error';
+    errorBox.textContent = msg;
+    setLoading(false);
+    shakeForm();
+  }
+
+  function shakeForm() {
+    const consoleEl = document.querySelector('.console');
+    consoleEl.style.animation = 'none';
+    requestAnimationFrame(() => {
+      consoleEl.style.animation = 'shake 0.4s cubic-bezier(0.36,0.07,0.19,0.97) both';
+    });
+    setTimeout(() => consoleEl.style.animation = '', 400);
+  }
+
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes shake {
+      0%,100%{transform:translateX(0)}
+      20%{transform:translateX(-8px)}
+      40%{transform:translateX(8px)}
+      60%{transform:translateX(-6px)}
+      80%{transform:translateX(6px)}
+    }
+  `;
+  document.head.appendChild(style);
+
+  inputs.forEach(input => {
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !btn.disabled) form.dispatchEvent(new Event('submit'));
+    });
+  });
+</script>
+</body>
+</html>
