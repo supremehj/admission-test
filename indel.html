@@ -418,7 +418,6 @@
     }
   `;
   document.head.appendChild(style);
-
   inputs.forEach(input => {
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !btn.disabled) form.dispatchEvent(new Event('submit'));
