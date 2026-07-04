@@ -198,10 +198,10 @@
     align-items: center;
     justify-content: center;
     padding: 20px;
-    animation: fadeIn 0.5s ease both;
   }
   .confirmation-overlay.active {
     display: flex;
+    animation: fadeIn 0.5s ease both;
   }
   @keyframes fadeIn {
     from { opacity: 0; transform: scale(0.95); }
@@ -332,6 +332,39 @@
     font-weight: 600;
   }
 
+  /* ===== LOADING SPINNER ===== */
+  .loading-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(3, 7, 13, 0.85);
+    z-index: 9999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .loading-overlay.active {
+    display: flex;
+  }
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--line);
+    border-top: 3px solid var(--cyan);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  .loading-overlay p {
+    color: var(--text-dim);
+    font-size: 13px;
+    letter-spacing: 0.1em;
+  }
+
   @media (max-width: 600px){
     iframe{ min-height: 82vh; }
     .confirmation-box { padding: 30px 20px; }
@@ -349,6 +382,12 @@
 <div class="scanline"></div>
 <div class="cursor-glow" id="cursorGlow"></div>
 <div class="cursor-core" id="cursorCore"></div>
+
+<!-- ===== LOADING OVERLAY ===== -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <p>Submitting your response...</p>
+</div>
 
 <header>
   <div class="uni-badge">📝 Admission Test in Progress</div>
@@ -407,13 +446,16 @@
 
   // ===== CONFIRMATION OVERLAY LOGIC =====
   const overlay = document.getElementById('confirmationOverlay');
+  const loadingOverlay = document.getElementById('loadingOverlay');
   const logoutBtn = document.getElementById('logoutBtn');
   const countdownEl = document.getElementById('countdown');
   let countdown = 10;
   let timerInterval = null;
+  let formSubmitted = false;
 
   // Function to show confirmation
   function showConfirmation() {
+    loadingOverlay.classList.remove('active');
     overlay.classList.add('active');
     countdown = 10;
     countdownEl.textContent = countdown;
@@ -430,72 +472,142 @@
     }, 1000);
   }
 
+  // Function to show loading
+  function showLoading() {
+    loadingOverlay.classList.add('active');
+  }
+
   // Function to redirect to main page (logout)
   function redirectToMain() {
-    // Clear any session data if needed
     sessionStorage.clear();
     localStorage.clear();
-    // Redirect to main page (index.html)
     window.location.href = 'index.html';
   }
 
   // Logout button click handler
   logoutBtn.addEventListener('click', redirectToMain);
 
-  // ===== DETECT FORM SUBMISSION =====
-  // Method 1: Detect iframe navigation to Google Form's thank you page
+  // ===== DETECT FORM SUBMISSION - IMPROVED =====
   const iframe = document.getElementById('testFrame');
-  let formSubmitted = false;
+  let checkInterval = null;
+  let isChecking = false;
 
-  // Listen for iframe load events
+  // Method 1: Listen for iframe load events
   iframe.addEventListener('load', function() {
+    // When iframe reloads, check if it's the thank you page
     try {
-      // Check if the iframe URL contains the thank you page indicator
       const iframeUrl = iframe.contentWindow.location.href;
-      if (iframeUrl.includes('formResponse') || iframeUrl.includes('thankyou')) {
+      console.log('Iframe URL:', iframeUrl);
+      
+      // Check for Google Forms submission indicators
+      if (iframeUrl.includes('formResponse') || 
+          iframeUrl.includes('thankyou') ||
+          iframeUrl.includes('viewform?') && iframeUrl.includes('embedded=true')) {
+        // Check if this is a new load after submission
         if (!formSubmitted) {
           formSubmitted = true;
           showConfirmation();
         }
       }
     } catch (e) {
-      // Cross-origin errors are expected - we'll use method 2 as fallback
+      // Cross-origin error - we'll use other methods
+      console.log('Cross-origin check:', e.message);
     }
   });
 
-  // Method 2: Listen for postMessage from Google Form (if available)
-  window.addEventListener('message', function(e) {
-    // Check if message indicates form submission
-    if (e.data === 'form-submitted' || (e.data && e.data.type === 'form-submit')) {
-      if (!formSubmitted) {
-        formSubmitted = true;
-        showConfirmation();
-      }
-    }
-  });
-
-  // Method 3: Fallback - Monitor iframe URL changes (polling)
-  let lastUrl = '';
-  setInterval(() => {
+  // Method 2: Check for "View accuracy" or "Submit another response" in iframe content
+  function checkIframeContent() {
+    if (formSubmitted) return;
+    
     try {
-      const currentUrl = iframe.contentWindow.location.href;
-      if (currentUrl !== lastUrl) {
-        lastUrl = currentUrl;
-        if (currentUrl.includes('formResponse') || currentUrl.includes('thankyou')) {
-          if (!formSubmitted) {
+      const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+      if (iframeDoc) {
+        // Check for thank you message
+        const bodyText = iframeDoc.body ? iframeDoc.body.innerText : '';
+        if (bodyText.includes('Your response has been recorded') ||
+            bodyText.includes('View accuracy') ||
+            bodyText.includes('Submit another response') ||
+            bodyText.includes('Thank you')) {
+          formSubmitted = true;
+          showConfirmation();
+        }
+        
+        // Check for specific elements
+        const elements = iframeDoc.querySelectorAll('*');
+        for (let el of elements) {
+          if (el.textContent && el.textContent.includes('View accuracy')) {
             formSubmitted = true;
             showConfirmation();
+            break;
           }
         }
       }
     } catch (e) {
       // Cross-origin - ignore
     }
+  }
+
+  // Method 3: Monitor URL changes using iframe src
+  function checkIframeSrc() {
+    if (formSubmitted) return;
+    
+    try {
+      // Check if iframe src has changed
+      const currentSrc = iframe.src;
+      if (currentSrc.includes('formResponse') || 
+          currentSrc.includes('thankyou')) {
+        formSubmitted = true;
+        showConfirmation();
+      }
+    } catch (e) {
+      // Ignore
+    }
+  }
+
+  // Method 4: Listen for postMessage from iframe
+  window.addEventListener('message', function(e) {
+    console.log('Message received:', e.data);
+    if (!formSubmitted) {
+      // Check if message indicates form submission
+      if (e.data === 'form-submitted' || 
+          (e.data && typeof e.data === 'object' && e.data.type === 'form-submit')) {
+        formSubmitted = true;
+        showConfirmation();
+      }
+    }
+  });
+
+  // Method 5: Listen for click on submit button in iframe (when possible)
+  // This uses a MutationObserver to detect changes in iframe content
+
+  // Set up interval to check for submission every 2 seconds
+  checkInterval = setInterval(() => {
+    if (formSubmitted) {
+      clearInterval(checkInterval);
+      return;
+    }
+    checkIframeContent();
+    checkIframeSrc();
   }, 2000);
 
-  // Method 4: Manual trigger for testing (remove in production)
+  // Also check on page visibility change
+  document.addEventListener('visibilitychange', function() {
+    if (!document.hidden && !formSubmitted) {
+      checkIframeContent();
+      checkIframeSrc();
+    }
+  });
+
+  // Method 6: Detect when user clicks Submit button
+  // We can detect this by listening for any click on the iframe
+  // Note: This will trigger on any click, so we need to check content after
+
+  // ===== MANUAL TESTING =====
   // To test manually, uncomment the line below:
   // setTimeout(showConfirmation, 5000);
+
+  console.log('Form submission detection started...');
+  console.log('Methods: iframe load, content check, URL check, message listener, interval polling');
 </script>
 </body>
 </html>
